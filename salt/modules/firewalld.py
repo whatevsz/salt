@@ -453,15 +453,7 @@ def add_port(zone, port, permanent=True):
 
         salt '*' firewalld.add_port internal 443/tcp
     '''
-    if not get_masquerade(zone):
-        add_masquerade(zone)
-
-    cmd = '--zone={0} --add-port={1}'.format(zone, port)
-
-    if permanent:
-        cmd += ' --permanent'
-
-    return __firewall_cmd(cmd)
+    return __firewall_cmd('--zone={0} --add-port={1}'.format(zone, port))
 
 
 def remove_port(zone, port, permanent=True):
@@ -511,9 +503,6 @@ def add_port_fwd(zone, src, dest, proto='tcp', dstaddr=''):
 
         salt '*' firewalld.add_port_fwd public 80 443 tcp
     '''
-    if not get_masquerade(zone):
-        add_masquerade(zone)
-
     return __firewall_cmd(
         '--zone={0} --add-forward-port=port={1}:proto={2}:toport={3}:toaddr={4}'.format(
             zone,
@@ -748,5 +737,4 @@ def remove_source(zone, source):
     '''
     if source not in get_sources(zone):
         log.info('Source is not bound to zone.')
-
-    return __firewall_cmd('--zone={0} --remove-source={1}'.format(zone, source))
+return __firewall_cmd('--zone={0} --remove-source={1}'.format(zone, source))
