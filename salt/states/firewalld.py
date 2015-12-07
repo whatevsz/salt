@@ -96,7 +96,7 @@ def present(name,
     if name not in zones:
         if not __opts__['test']:
             try:
-                __salt__['firewalld.new_zone'](name)
+                __salt__['firewalld.new_zone'](name, restart=True)
             except CommandExecutionError as err:
                 ret['comment'] = 'Error: {0}'.format(err)
                 return ret
@@ -234,7 +234,8 @@ def present(name,
                 new_services.append(service)
                 if not __opts__['test']:
                     try:
-                        __salt__['firewalld.add_service'](service, zone=name)
+                        __salt__['firewalld.add_service'](service, zone=name,
+                                                          permanent=False)
                     except CommandExecutionError as err:
                         ret['comment'] = 'Error: {0}'.format(err)
                         return ret
@@ -242,6 +243,13 @@ def present(name,
             ret['changes'].update({'services':
                                   {'old': _current_services,
                                    'new': new_services}})
+
+    if ret['changes'] != {}:
+        try:
+            __salt__['firewalld.make_permanent']()
+        except CommandExecutionError as err:
+            ret['comment'] = 'Error: {0}'.format(err)
+            return ret
 
     ret['result'] = True
     if ret['changes'] == {}:
