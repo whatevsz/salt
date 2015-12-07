@@ -514,7 +514,7 @@ def add_port_fwd(zone, src, dest, proto='tcp', dstaddr=''):
     )
 
 
-def remove_port_fwd(zone, src, dest, proto='tcp'):
+def remove_port_fwd(zone, src, dest, proto='tcp', destaddr=''):
     '''
     Remove Port Forwarding.
 
@@ -527,11 +527,12 @@ def remove_port_fwd(zone, src, dest, proto='tcp'):
         salt '*' firewalld.remove_port_fwd public 80 443 tcp
     '''
     return __firewall_cmd(
-        '--zone={0} --remove-forward-port=port={1}:proto={2}:toport={3}'.format(
+        '--zone={0} --remove-forward-port=port={1}:proto={2}:toport={3}:toaddr={4}'.format(
             zone,
             src,
             proto,
-            dest
+            dest,
+            destaddr
         )
     )
 
