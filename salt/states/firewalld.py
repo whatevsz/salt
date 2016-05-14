@@ -74,6 +74,37 @@ would allow access to the salt master from the 10.0.0.0/8 subnet:
         - saltmaster
       - sources:
         - 10.0.0.0/8
+
+There are two ways how a service can be attached to a zone: Either by
+specifying the services in the zone definition, or the other way round. The
+first way can be seen in the example above. If one instead wants to tell the
+services which zones they belong to, the following can be used:
+
+.. code-block:: yaml
+
+  saltmaster:
+    firewalld.service:
+      - name: saltmaster
+      - ports:
+        - 4505/tcp
+        - 4506/tcp
+      - zones:
+        - saltzone
+
+To tell the zone to not clean up any services not defined via the `services`
+parameter, the `prune_services` parameter must be set to `False`:
+
+.. code-block:: yaml
+
+  saltzone:
+    firewalld.zone:
+      - name: saltzone
+      - prune_services: False
+      - sources:
+        - 10.0.0.0/8
+
+Note that doing both ways at the same time is not recommended, as a mismatch
+between the lists will lead to a change to the zones each time the state is run.
 '''
 
 # Import Python Libs
@@ -189,7 +220,8 @@ def zone(name,
 
 def service(name,
             ports=None,
-            protocols=None):
+            protocols=None,
+            zones=None):
     '''
     Ensure the service exists and encompasses the specified ports and
     protocols.
@@ -203,6 +235,36 @@ def service(name,
 
     if name not in __salt__['firewalld.get_services']():
         __salt__['firewalld.new_service'](name, restart=False)
+
+    if zones is not None: # we DO have to run if it is an empty list!
+        current_zones = []
+        for zone in __salt__['firewalld.get_zones']():
+            if name in __salt__['firewalld.list_services'](zone):
+                current_zones.append(zone)
+
+        old_zones = set(current_zones) - set(zones)
+        new_zones = set(zones) - set(current_zones)
+
+        for zone in new_zones:
+            if not __opts__['test']:
+                try:
+                    __salt__['firewalld.add_service'](name, zone)
+                except CommandExecutionError as err:
+                    ret['comment'] = 'Error: {0}'.format(err)
+                    return ret
+
+        for zone in old_zones:
+            if not __opts__['test']:
+                try:
+                    __salt__['firewalld.remove_service'](name, zone)
+                except CommandExecutionError as err:
+                    ret['comment'] = 'Error: {0}'.format(err)
+                    return ret
+
+        if new_zones or old_zones:
+            ret['changes'].update({'zones':
+                                    {'old': current_zones,
+                                    'new': zones}})
 
     ports = ports or []
 
