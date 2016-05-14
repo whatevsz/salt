@@ -12,7 +12,7 @@ It will be applied permanently and directly before restart/reload.
 .. code-block:: yaml
 
     public:
-      firewalld.present:
+      firewalld.zone:
         - name: public
         - block_icmp:
           - echo-reply
@@ -30,7 +30,7 @@ to 2222, and forwards TCP traffic from port 80 to 443 at 192.168.0.1.
 .. code-block:: yaml
 
   my_zone:
-    firewalld.present:
+    firewalld.zone:
       - name: public
       - masquerade: True
       - port_fwd:
@@ -44,7 +44,7 @@ from all other interfaces or sources.
 .. code-block:: yaml
 
   public:
-    firewalld.present:
+    firewalld.zone:
       - name: public
       - interfaces:
         - eth0
@@ -68,7 +68,7 @@ would allow access to the salt master from the 10.0.0.0/8 subnet:
 .. code-block:: yaml
 
   saltzone:
-    firewalld.present:
+    firewalld.zone:
       - name: saltzone
       - services:
         - saltmaster
@@ -151,24 +151,24 @@ def __virtual__():
     return (False, 'firewall-cmd is not available, firewalld is probably not installed.')
 
 
-def present(name,
-            block_icmp=None,
-            default=None,
-            masquerade=False,
-            ports=None,
-            port_fwd=None,
-            services=None,
-            prune_services=True,
-            interfaces=None,
-            sources=None,
-            rich_rules=None):
+def zone(name,
+         block_icmp=None,
+         default=None,
+         masquerade=False,
+         ports=None,
+         port_fwd=None,
+         services=None,
+         prune_services=True,
+         interfaces=None,
+         sources=None,
+         rich_rules=None):
 
     '''
     Ensure a zone has specific attributes.
     '''
 
-    ret = _present(name, block_icmp, default, masquerade, ports, port_fwd,
-                   services, prune_services, interfaces, sources, rich_rules)
+    ret = _zone(name, block_icmp, default, masquerade, ports, port_fwd,
+                services, prune_services, interfaces, sources, rich_rules)
 
     if ret['changes'] != {}:
         __salt__['firewalld.reload_rules']()
@@ -286,17 +286,18 @@ def service(name,
     return ret
 
 
-def _present(name,
-            block_icmp=None,
-            default=None,
-            masquerade=False,
-            ports=None,
-            port_fwd=None,
-            services=None,
-            prune_services=True,
-            interfaces=None,
-            sources=None,
-            rich_rules=None):
+def _zone(name,
+          block_icmp=None,
+          default=None,
+          masquerade=False,
+          ports=None,
+          port_fwd=None,
+          services=None,
+          prune_services=True,
+          interfaces=None,
+          sources=None,
+          rich_rules=None):
+
     '''
     Ensure a zone has specific attributes.
     '''
